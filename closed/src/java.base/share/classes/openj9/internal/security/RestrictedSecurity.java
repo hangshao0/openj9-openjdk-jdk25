@@ -1,6 +1,6 @@
 /*
  * ===========================================================================
- * (c) Copyright IBM Corp. 2022, 2025 All Rights Reserved
+ * (c) Copyright IBM Corp. 2022, 2026 All Rights Reserved
  * ===========================================================================
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,7 +90,7 @@ public final class RestrictedSecurity {
     static {
         final List<String> nssSupportedArch = List.of("amd64", "ppc64le", "s390x");
         final List<String> openjceplusCertifiedArch = List.of("amd64", "ppc64", "s390x");
-        final List<String> openjceplusCertifiedOS = List.of("AIX", "Linux", "Windows");
+        final List<String> openjceplusCertifiedOS = List.of("AIX", "Linux", "Windows", "z/OS");
         String osName = System.getProperty("os.name");
         String osArch = System.getProperty("os.arch");
 
@@ -236,18 +236,29 @@ public final class RestrictedSecurity {
     }
 
     /**
-     * Check if the FIPS mode is enabled.
+     * Check if a FIPS mode is enabled.
      *
-     * FIPS mode will be enabled when the semeru.fips system property is
-     * true, and the RestrictedSecurity mode has been successfully initialized.
+     * FIPS mode will be enabled when the semeru.fips system property
+     * is true, and a FIPS profile is successfully initialized in
+     * RestrictedSecurity mode.
      *
      * @return true if FIPS is enabled
      */
     public static boolean isFIPSEnabled() {
-        if (securityEnabled) {
-            return isFIPSEnabled;
-        }
-        return false;
+        return securityEnabled && isFIPSEnabled;
+    }
+
+    /**
+     * Check if the FIPS 140-2 mode is enabled.
+     *
+     * FIPS 140-2 mode will be enabled when the semeru.fips system property
+     * is true, and a FIPS 140-2 profile is successfully initialized in
+     * RestrictedSecurity mode.
+     *
+     * @return true if FIPS 140-2 is enabled
+     */
+    public static boolean isFIPS1402Enabled() {
+        return securityEnabled && isFIPSEnabled && "140-2".equals(restricts.jdkFipsMode);
     }
 
     /**
@@ -578,6 +589,7 @@ public final class RestrictedSecurity {
         propsMapping.put("jdk.tls.legacyAlgorithms", restricts.jdkTlsLegacyAlgorithms);
         propsMapping.put("jdk.certpath.disabledAlgorithms", restricts.jdkCertpathDisabledAlgorithms);
         propsMapping.put("jdk.security.legacyAlgorithms", restricts.jdkSecurityLegacyAlgorithms);
+        propsMapping.put("securerandom.strongAlgorithms", restricts.jdkSecureRandomStrongAlgorithms);
 
         if (restricts.descIsFIPS) {
             if (restricts.jdkFipsMode == null) {
@@ -586,6 +598,7 @@ public final class RestrictedSecurity {
             String fipsMode = System.getProperty("com.ibm.fips.mode");
             if (fipsMode == null) {
                 System.setProperty("com.ibm.fips.mode", restricts.jdkFipsMode);
+                propsMapping.put("com.ibm.fips.mode", restricts.jdkFipsMode);
             } else if (!fipsMode.equals(restricts.jdkFipsMode)) {
                 printStackTraceAndExit("Property com.ibm.fips.mode is incompatible with semeru.customprofile and semeru.fips properties");
             }
@@ -772,6 +785,7 @@ public final class RestrictedSecurity {
         // For SecureRandom.
         final String jdkSecureRandomProvider;
         final String jdkSecureRandomAlgorithm;
+        final String jdkSecureRandomStrongAlgorithms;
 
         final String jdkFipsMode;
 
@@ -806,6 +820,7 @@ public final class RestrictedSecurity {
             // For SecureRandom.
             this.jdkSecureRandomProvider = parser.getProperty("jdkSecureRandomProvider");
             this.jdkSecureRandomAlgorithm = parser.getProperty("jdkSecureRandomAlgorithm");
+            this.jdkSecureRandomStrongAlgorithms = parser.getProperty("jdkSecureRandomStrongAlgorithms");
 
             this.jdkFipsMode = parser.getProperty("jdkFipsMode");
 
@@ -1100,6 +1115,7 @@ public final class RestrictedSecurity {
             printProperty(profileID + ".javax.net.ssl.keyStore: ", keyStore);
             printProperty(profileID + ".securerandom.provider: ", jdkSecureRandomProvider);
             printProperty(profileID + ".securerandom.algorithm: ", jdkSecureRandomAlgorithm);
+            printProperty(profileID + ".securerandom.strongAlgorithms: ", jdkSecureRandomStrongAlgorithms);
             System.out.println();
         }
 
@@ -1503,6 +1519,9 @@ public final class RestrictedSecurity {
                 case "jdkTlsLegacyAlgorithms":
                     propertyKey = "jdk.tls.legacyAlgorithms";
                     break;
+                case "jdkSecureRandomStrongAlgorithms":
+                    propertyKey = "securerandom.strongAlgorithms";
+                    break;
                 default:
                     return null;
                 }
@@ -1556,6 +1575,8 @@ public final class RestrictedSecurity {
                     profileID + ".securerandom.provider", allInfo);
             setProperty("jdkSecureRandomAlgorithm",
                     profileID + ".securerandom.algorithm", allInfo);
+            setProperty("jdkSecureRandomStrongAlgorithms",
+                    profileID + ".securerandom.strongAlgorithms", allInfo);
             setProperty("jdkFipsMode",
                     profileID + ".fips.mode", allInfo);
 
@@ -1901,6 +1922,7 @@ public final class RestrictedSecurity {
             case "jdkTlsDisabledAlgorithms":
             case "jdkTlsDisabledNamedCurves":
             case "jdkTlsLegacyAlgorithms":
+            case "jdkSecureRandomStrongAlgorithms":
                 return true;
             default:
                 return false;

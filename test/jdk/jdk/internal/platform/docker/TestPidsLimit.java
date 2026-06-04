@@ -28,6 +28,7 @@
  * @summary Test JDK Metrics class when running inside a docker container with limited pids
  * @bug 8266490
  * @requires container.support
+ * @requires !vm.asan
  * @library /test/lib
  * @build TestPidsLimit
  * @run driver TestPidsLimit
@@ -59,9 +60,7 @@ public class TestPidsLimit {
             testPidsLimit("2000");
             testPidsLimit("Unlimited");
         } finally {
-            if (!DockerTestUtils.RETAIN_IMAGE_AFTER_TEST) {
-                DockerTestUtils.removeDockerImage(imageName);
-            }
+            DockerTestUtils.removeDockerImage(imageName);
         }
     }
 

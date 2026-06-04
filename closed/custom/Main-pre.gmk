@@ -1,5 +1,5 @@
 # ===========================================================================
-# (c) Copyright IBM Corp. 2017, 2025 All Rights Reserved
+# (c) Copyright IBM Corp. 2017, 2026 All Rights Reserved
 # ===========================================================================
 # This code is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 2 only, as
@@ -22,6 +22,7 @@ CLEAN_DIRS += vm
 
 .PHONY : \
 	debug-image \
+	hotspot-jfr-gensrc \
 	j9vm-build \
 	test-image-openj9 \
 	#
@@ -44,7 +45,13 @@ ifeq (,$(filter clean dist-clean, $(SEQUENTIAL_TARGETS)))
   create-main-targets-include java.base-gensrc : generate-j9jcl-sources
 endif
 
-j9vm-build : buildtools-langtools
+# JFR header generation target - invokes wrapper that includes upstream GensrcJfr.gmk.
+hotspot-jfr-gensrc : buildtools-hotspot
+  ifeq ($(OPENJ9_ENABLE_JFR), true)
+	@+$(MAKE) $(MAKE_ARGS) -f $(TOPDIR)/closed/GensrcJfrWrapper.gmk
+  endif # OPENJ9_ENABLE_JFR
+
+j9vm-build : hotspot-jfr-gensrc
   ifeq ($(BUILD_OPENSSL), true)
 	@+$(MAKE) $(MAKE_ARGS) -f $(TOPDIR)/closed/openssl.gmk
   endif # BUILD_OPENSSL
@@ -137,7 +144,7 @@ openjceplus-copy : openjceplus-libs
 
 openjceplus-clean :
 	@$(ECHO) Cleaning OpenJCEPlus native code
-	$(MAKE) -C $(OPENJCEPLUS_TOPDIR)/src/main/native -f $(OPENJCEPLUS_JGSKIT_MAKE) cleanAll
+	$(MAKE) -C $(OPENJCEPLUS_TOPDIR)/src/main/native/ock -f $(OPENJCEPLUS_JGSKIT_MAKE) cleanAll
 
 clean-openjceplus : openjceplus-clean
 

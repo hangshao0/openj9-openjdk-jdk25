@@ -26,6 +26,7 @@
  * @test
  * @summary Basic (sanity) test for JDK-under-test inside a docker image.
  * @requires container.support
+ * @requires !vm.asan
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -55,9 +56,7 @@ public class DockerBasicTest {
             testHelloDocker();
             testJavaVersionWithCgMounts();
         } finally {
-            if (!DockerTestUtils.RETAIN_IMAGE_AFTER_TEST) {
-                DockerTestUtils.removeDockerImage(imageNameAndTag);
-            }
+            DockerTestUtils.removeDockerImage(imageNameAndTag);
         }
     }
 

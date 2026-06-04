@@ -22,6 +22,12 @@
  */
 
 /*
+ * ===========================================================================
+ * (c) Copyright IBM Corp. 2026, 2026 All Rights Reserved
+ * ===========================================================================
+ */
+
+/*
  * @test
  * @library /test/lib
  * @bug 6447816
@@ -30,6 +36,7 @@
  */
 import jdk.test.lib.Utils;
 import java.util.*;
+import java.util.stream.Stream;
 import java.security.*;
 
 public class ProviderFiltering {
@@ -85,9 +92,13 @@ public class ProviderFiltering {
         }
 
         String p = "SUN";
+        // Get the names of providers in the order they're listed in java.security.
+        String[] providers = Stream.of(Security.getProviders("Signature.NONEwithDSA"))
+                .map(provider -> provider.getName())
+                .toArray(String[]::new);
 
         // test alias
-        doit("Signature.NONEwithDSA", p);
+        doit("Signature.NONEwithDSA", providers);
 
         String sigService = "Signature.SHA256withDSA";
         // javadoc allows extra spaces in between
@@ -117,7 +128,7 @@ public class ProviderFiltering {
         // try non-attribute filters
         filters.clear();
         filters.put(sigService, "");
-        doit(filters, p);
+        doit(filters, providers);
         filters.put("Cipher.RC2", "");
         doit(filters);
 
@@ -130,9 +141,10 @@ public class ProviderFiltering {
                 customValue);
         Security.insertProviderAt(testProv, 1);
         // should find both TestProv and SUN and in this order
-        doit(sigService, pName, "SUN");
+        providers = Stream.concat(Stream.of(pName), Stream.of(providers)).toArray(String[]::new);
+        doit(sigService, providers);
         filters.put(sigService, "");
-        doit(filters, pName, "SUN");
+        doit(filters, providers);
 
         String specAttr = sigService + "  " + customKey + ":" + customValue;
         // should find only TestProv

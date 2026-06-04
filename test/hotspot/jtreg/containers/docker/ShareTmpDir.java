@@ -28,6 +28,7 @@
  * @key cgroups
  * @summary Test for hsperfdata file name conflict when two containers share the same /tmp directory
  * @requires container.support
+ * @requires !vm.asan
  * @library /test/lib
  * @build WaitForFlagFile
  * @run driver ShareTmpDir
@@ -58,9 +59,7 @@ public class ShareTmpDir {
         try {
             test();
         } finally {
-            if (!DockerTestUtils.RETAIN_IMAGE_AFTER_TEST) {
-                DockerTestUtils.removeDockerImage(imageName);
-            }
+            DockerTestUtils.removeDockerImage(imageName);
         }
     }
 

@@ -24,6 +24,7 @@
 /*
  * @test
  * @bug 8087112 8180044 8256459
+ * @key intermittent
  * @modules java.net.http
  *          java.logging
  *          jdk.httpserver
@@ -101,7 +102,7 @@ public class ManyRequests {
                          + " requests; delay=" + INSERT_DELAY
                          + ", chunks=" + CHUNK_SIZE
                          + ", XFixed=" + XFIXED);
-        SSLContext ctx = new SimpleSSLContext().get();
+        SSLContext ctx = SimpleSSLContext.findSSLContext();
 
         InetSocketAddress addr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
         HttpsServer server = HttpsServer.create(addr, 0);

@@ -111,12 +111,11 @@ security.provider.tbd=SunMSCAPI
 security.provider.tbd=Apple
 #endif
 security.provider.tbd=SunPKCS11
+security.provider.tbd=OpenJCEPlus
 
-#if defined aix-ppc || defined linux-ppc || defined linux-s390 || defined linux-x86 || defined windows
 #
 # Java Restricted Security Mode
 #
-#endif
 #if defined linux-ppc || defined linux-s390 || defined linux-x86
 RestrictedSecurity.NSS.140-2.desc.name = Red Hat Enterprise Linux 8 NSS Cryptographic Module FIPS 140-2
 RestrictedSecurity.NSS.140-2.desc.default = true
@@ -211,10 +210,10 @@ RestrictedSecurity.NSS.140-2.securerandom.algorithm = PKCS11
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.name = OpenJCEPlusFIPS Cryptographic Module FIPS 140-3
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.default = false
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.fips = true
-RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.hash = SHA256:ec0c39e03e01931233de1699882241c3c782382c23bfa51d19d915bf61660f9e
-RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.number = Certificate #XXX
-RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.policy = https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/
-RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.sunsetDate = 2026-09-21
+RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.hash = SHA256:488826302be498c47d45f798b8705297241434e522b983be5bd8abc759d8aab5
+RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.number = Certificate #4755
+RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.policy = https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4755
+RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.desc.sunsetDate = 2029-08-08
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.fips.mode = 140-3
 
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.tls.disabledAlgorithms = + \
@@ -351,6 +350,7 @@ RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.jce.provider.3 = sun.security.ssl.S
 
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.securerandom.provider = OpenJCEPlusFIPS
 RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.securerandom.algorithm = SHA512DRBG
+RestrictedSecurity.OpenJCEPlusFIPS.FIPS140-3.securerandom.strongAlgorithms = SHA512DRBG:OpenJCEPlusFIPS
 
 # Strongly enforced restricted security mode profile for FIPS 140-3.
 #
@@ -1137,6 +1137,54 @@ jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, \
     ecdsa_sha1 usage HandshakeSignature, dsa_sha1 usage HandshakeSignature
 
 #
+# Algorithm restrictions for Java Crypto API services
+#
+# In some environments, certain algorithms may be undesirable for certain
+# cryptographic services. For example, "MD2" is generally no longer considered
+# to be a secure hash algorithm.  This section describes the mechanism for
+# disabling algorithms at the JCA/JCE level based on service name and algorithm
+# name.
+#
+# If a system property of the same name is also specified, it supersedes the
+# security property value defined here.
+#
+# The syntax of the disabled services string is described as follows:
+#       "DisabledService {, DisabledService}"
+#
+#   DisabledService:
+#       Service.AlgorithmName
+#
+# Service:  (one of the following, more services may be added later)
+#     Cipher | KeyStore | MessageDigest | Signature
+#
+#   AlgorithmName:
+#       (see below)
+#
+# The "AlgorithmName" is the standard algorithm name of the disabled
+# service. See the Java Security Standard Algorithm Names Specification
+# for information about Standard Algorithm Names.  Matching is
+# performed using a case-insensitive exact matching rule. For Cipher service,
+# its algorithm is the transformation string.
+#
+# Note: If the property value contains entries with invalid syntax or
+# unsupported services at the time of checking, an ExceptionInInitializerError
+# with a cause of IllegalArgumentException will be thrown.
+#
+# Note: The restriction is applied in the various getInstance(...) methods
+# of the supported Service classes, i.e. Cipher, KeyStore, MessageDigest,
+# and Signature. If the algorithm is disabled, a NoSuchAlgorithmException will
+# be thrown by the getInstance methods of Cipher, MessageDigest, and Signature
+# and a KeyStoreException by the getInstance methods of KeyStore.
+#
+# Note: This property is currently used by the JDK Reference implementation.
+# It is not guaranteed to be examined and used by other implementations.
+#
+# Example:
+#   jdk.crypto.disabledAlgorithms=Cipher.RSA/ECB/PKCS1Padding, MessageDigest.MD2
+#
+#jdk.crypto.disabledAlgorithms=
+
+#
 # Legacy algorithms for Secure Socket Layer/Transport Layer Security (SSL/TLS)
 # processing in JSSE implementation.
 #
@@ -1726,6 +1774,9 @@ jdk.sasl.disabledMechanisms=
 #   CAMERFIRMA_TLS : Distrust TLS Server certificates anchored by
 #   a Camerfirma root CA and issued after April 15, 2025.
 #
+#   CHUNGHWA_TLS : Distrust TLS Server certificates anchored by
+#   a Chunghwa root CA and issued after March 17, 2026.
+#
 # Leading and trailing whitespace surrounding each value are ignored.
 # Unknown values are ignored. If the property is commented out or set to the
 # empty String, no policies are enforced.
@@ -1737,7 +1788,8 @@ jdk.sasl.disabledMechanisms=
 # jdk.certpath.disabledAlgorithms; those restrictions are still enforced even
 # if this property is not enabled.
 #
-jdk.security.caDistrustPolicies=SYMANTEC_TLS,ENTRUST_TLS,CAMERFIRMA_TLS
+jdk.security.caDistrustPolicies=SYMANTEC_TLS,ENTRUST_TLS,CAMERFIRMA_TLS,\
+    CHUNGHWA_TLS
 
 #
 # FilePermission path canonicalization
@@ -1940,3 +1992,73 @@ jdk.tls.alpnCharset=ISO_8859_1
 # withEncryption method.
 #
 jdk.epkcs8.defaultAlgorithm=PBEWithHmacSHA256AndAES_128
+
+#
+# X.509 AuthorityInfoAccess caIssuer URI Filtering
+#
+# This property defines a whitespace-separated list of filters that
+# are applied to URIs found in the authorityInfoAccess extension in
+# X.509 certificates. Any caIssuers URIs in X.509 certificates are only
+# followed when the com.sun.security.enableAIAcaIssuers System property is
+# enabled and the filter allows the URI. By default this property imposes a
+# deny-all ruleset.  This property may be overridden by a System property
+# of the same name.
+#
+# The filters must take the form of absolute, hierarchical URIs as defined by
+# the java.net.URI class. Additionally, only the following protocols are
+# allowed as filters: http, https, ldap and ftp.
+# See RFC 5280, section 4.2.2.1 for details about the types of URIs allowed for
+# the extension and their specific requirements.
+# The filter matching rules are applied to each CA issuer URI as follows:
+# 1. The scheme must match (case-insensitive).
+# 2. A hostname or address must be specified in the filter URI.  It must match
+#    the host or address in the caIssuers URI (case-insensitive).  No name
+#    resolution is performed on hostnames to match IP addresses.
+# 3. The port number must match.  For filter and caIssuer URIs, when a port
+#    number is omitted, the well-known port for that scheme will be used in the
+#    comparison.
+# 4. For hierarchical filesystem schemes (e.g. http[s], ftp):
+#    a. The normalized path portion of the filter URI is matched in a
+#       case-sensitive manner.  If the final component of the path does not end
+#       in a slash (/), it is considered to be a file path component and must
+#       be an exact match of the caIssuer's URI file path component.  If the
+#       final filter component ends in a slash, then it must either match or be
+#       a prefix of the caIssuer's URI path component (e.g. a filter path of
+#       /ab/cd/ will match a caIssuer path of /ab/cd/, /ab/cd/ef and
+#       /ab/cd/ef/ghi).
+#    b. Query strings will be ignored in filter rules and caIssuer URIs.
+#    c. Fragments will be ignored in filter rules and caIssuer URIs.
+# 5. For ldap URIs:
+#    a. The base DN must be an exact match (case-insensitive).
+#    b. Any query string in the rule, if specified, is ignored.
+# 6. A single value "any" (case-insensitive) will create an allow-all rule.
+#
+# As an example, here is a valid filter policy consisting of two rules:
+#    com.sun.security.allowedAIALocations=http://some.company.com/cacert \
+#          ldap://ldap.company.com/dc=company,dc=com?caCertificate;binary
+com.sun.security.allowedAIALocations=
+
+#
+# PKCS #8 encoding format for newly created ML-KEM and ML-DSA private keys
+#
+# RFC 9935 and RFC 9881 define three possible formats for a private key:
+# a seed (64 bytes for ML-KEM, 32 bytes for ML-DSA), an expanded private key,
+# or a sequence containing both.
+#
+# The following security properties determine the encoding format used when a
+# new keypair is generated with a KeyPairGenerator, and the output of the
+# translateKey method on an existing key using a ML-KEM or ML-DSA KeyFactory.
+#
+# Valid values for these properties are "seed", "expandedKey", and "both"
+# (case-insensitive). The default is "seed".
+#
+# If a system property of the same name is also specified, it supersedes the
+# security property value defined here.
+#
+# Note: These properties are currently used by the SunJCE (for ML-KEM) and SUN
+# (for ML-DSA) providers in the JDK Reference implementation. They are not
+# guaranteed to be supported by other implementations or third-party security
+# providers.
+#
+#jdk.mlkem.pkcs8.encoding = seed
+#jdk.mldsa.pkcs8.encoding = seed

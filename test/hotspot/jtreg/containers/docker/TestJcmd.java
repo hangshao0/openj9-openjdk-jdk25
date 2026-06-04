@@ -57,7 +57,7 @@ public class TestJcmd {
     private static final String IMAGE_NAME = Common.imageName("jcmd");
     private static final int TIME_TO_RUN_CONTAINER_PROCESS = (int) (10 * Utils.TIMEOUT_FACTOR); // seconds
     private static final String CONTAINER_NAME = "test-container";
-    private static final boolean IS_PODMAN = Container.ENGINE_COMMAND.contains("podman");
+    private static final boolean IS_PODMAN = DockerTestUtils.isPodman();
     private static final String ROOT_UID = "0";
 
 
@@ -168,13 +168,9 @@ public class TestJcmd {
         opts.addDockerOpts("--volume", Utils.TEST_CLASSES + ":/test-classes/:z")
             .addJavaOpts("-cp", "/test-classes/")
             .addDockerOpts("--cap-add=SYS_PTRACE")
+            .addDockerOpts("--pull=never")
             .addDockerOpts("--name", CONTAINER_NAME)
             .addClassOptions("" + TIME_TO_RUN_CONTAINER_PROCESS);
-
-        if (IS_PODMAN && !ROOT_UID.equals(getId("-u"))) {
-            // map the current userid to the one in the target namespace
-            opts.addDockerOpts("--userns=keep-id");
-        }
 
         // avoid large Xmx
         opts.appendTestJavaOptions = false;
@@ -184,7 +180,7 @@ public class TestJcmd {
         return ProcessTools.startProcess("main-container-process",
                                       pb,
                                       line -> line.contains(EventGeneratorLoop.MAIN_METHOD_STARTED),
-                                      5, TimeUnit.SECONDS);
+                                      15, TimeUnit.SECONDS);
     }
 
 

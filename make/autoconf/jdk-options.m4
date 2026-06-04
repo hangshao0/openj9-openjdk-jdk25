@@ -106,9 +106,20 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_JDK_OPTIONS],
       CHECKING_MSG: [if we should build headless-only (no GUI)])
   AC_SUBST(ENABLE_HEADLESS_ONLY)
 
+  # Avoid headless-only on macOS and Windows, it is not supported there
+  if test "x$ENABLE_HEADLESS_ONLY" = xtrue; then
+    if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx; then
+      AC_MSG_ERROR([headless-only is not supported on macOS and Windows])
+    fi
+  fi
+
   # should we linktime gc unused code sections in the JDK build ?
-  if test "x$OPENJDK_TARGET_OS" = "xlinux" && test "x$OPENJDK_TARGET_CPU" = xs390x; then
-    LINKTIME_GC_DEFAULT=true
+  if test "x$OPENJDK_TARGET_OS" = "xlinux"; then
+    if test "x$OPENJDK_TARGET_CPU" = "xs390x" || test "x$OPENJDK_TARGET_CPU" = "xppc64le"; then
+      LINKTIME_GC_DEFAULT=true
+    else
+      LINKTIME_GC_DEFAULT=false
+    fi
   else
     LINKTIME_GC_DEFAULT=false
   fi
@@ -470,6 +481,31 @@ AC_DEFUN_ONCE([JDKOPT_SETUP_ADDRESS_SANITIZER],
         LDFLAGS_STATIC_JDK="$LDFLAGS_STATIC_JDK $ASAN_LDFLAGS"
       ])
   AC_SUBST(ASAN_ENABLED)
+])
+
+################################################################################
+#
+# Static analyzer
+#
+AC_DEFUN_ONCE([JDKOPT_SETUP_STATIC_ANALYZER],
+[
+  UTIL_ARG_ENABLE(NAME: static-analyzer, DEFAULT: false, RESULT: STATIC_ANALYZER_ENABLED,
+      DESC: [enable the GCC static analyzer],
+      CHECK_AVAILABLE: [
+        AC_MSG_CHECKING([if static analyzer is available])
+        if test "x$TOOLCHAIN_TYPE" = "xgcc"; then
+          AC_MSG_RESULT([yes])
+        else
+          AC_MSG_RESULT([no])
+          AVAILABLE=false
+        fi
+      ],
+      IF_ENABLED: [
+        STATIC_ANALYZER_CFLAGS="-fanalyzer -Wno-analyzer-fd-leak"
+        CFLAGS_JDKLIB="$CFLAGS_JDKLIB $STATIC_ANALYZER_CFLAGS"
+        CFLAGS_JDKEXE="$CFLAGS_JDKEXE $STATIC_ANALYZER_CFLAGS"
+      ])
+  AC_SUBST(STATIC_ANALYZER_ENABLED)
 ])
 
 ################################################################################
